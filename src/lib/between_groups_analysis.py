@@ -42,12 +42,12 @@ def get_groups_maps(group1_files, group2_files, subject_list, n):
     group2_subjects = subject_list[n][int(len(subject_list[n])/2):]
 
     for file in group1_files:
-        sub_id = file.split('/')[-1].split('_')[-3]
+        sub_id = file.split('/')[-1].split('_')[0].split('-')[-1]
         if sub_id in group1_subjects:
             group1_sublist.append(file)  # Get the files corresponding to subjects from the first part of the n-th list of subjects 
 
     for file in group2_files:
-        sub_id = file.split('/')[-1].split('_')[-3]
+        sub_id = file.split('/')[-1].split('_')[0].split('-')[-1]
         if sub_id in group2_subjects:
             group2_sublist.append(file) 
 
@@ -68,7 +68,7 @@ def get_threshold_images(threshold, image):
 
     return f_path
 
-def get_l2_analysis_group_comparison(exp_dir_group1, exp_dir_group2, output_dir, working_dir, result_dir, subject_list, contrast_list, gzip=[True, True]): 
+def get_l2_analysis_group_comparison(exp_dir, group1, group2, output_dir, working_dir, result_dir, subject_list, contrast_list, gzip=[True, True]): 
     """
     Function to create Nipype workflow corresponding to group comparisons. 
     Parameters:
@@ -91,8 +91,8 @@ def get_l2_analysis_group_comparison(exp_dir_group1, exp_dir_group2, output_dir,
     infosource_groupanalysis.iterables = [('contrast', contrast_list)]
 
     # SelectFiles templates and Node
-    group1_files = opj(exp_dir_group1, 'sub_*_contrast_{contrast}.nii*')
-    group2_files = opj(exp_dir_group2, 'sub_*_contrast_{contrast}.nii*')
+    group1_files = opj(exp_dir, 'sub-*_{contrast}'+f'_{group1}_con.nii*')
+    group2_files = opj(exp_dir, 'sub-*_{contrast}'+f'_{group2}_con.nii*')
 
     templates = {'group1' : group1_files, 'group2':group2_files}
     

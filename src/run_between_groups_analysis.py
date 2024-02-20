@@ -21,7 +21,7 @@ simplefilter(action='ignore', category=FutureWarning)
 simplefilter(action='ignore', category=UserWarning)
 simplefilter(action='ignore', category=RuntimeWarning)
 
-def compute_group_comparison(exp_dir_group1, exp_dir_group2, result_dir, subject_list, contrast_list, gzip=[True, True], param=True):
+def compute_group_comparison(exp_dir, group1, group2, result_dir, subject_list, contrast_list, gzip=[True, True], param=True):
     """
     Function to run Nipype workflow corresponding to group comparisons. 
     Parameters:
@@ -46,21 +46,22 @@ def compute_group_comparison(exp_dir_group1, exp_dir_group2, result_dir, subject
         print('Perform parametric analysis')
         ## output_dir : where the final results will be store
         output_dir = f"final_results_group_comparison"
-        l2_analysis_generated = between_groups_analysis.get_l2_analysis_group_comparison(exp_dir_group1, exp_dir_group2, output_dir, working_dir, result_dir, 
+        l2_analysis_generated = between_groups_analysis.get_l2_analysis_group_comparison(exp_dir, group1, group2, output_dir, working_dir, result_dir, 
             subject_list, contrast_list, gzip=gzip)
     else:
         print('Perform non parametric analysis')
         ## output_dir : where the final results will be store
         output_dir = f"final_results_group_comparison_non_param"
-        l2_analysis_generated = non_parametric_thresholding.get_l2_analysis(exp_dir_group1, exp_dir_group2, output_dir, 
+        l2_analysis_generated = non_parametric_thresholding.get_l2_analysis(exp_dir, group1, group2, output_dir, 
                                             working_dir, result_dir, random_subject_list, contrast_list)
         
     l2_analysis_generated.run('MultiProc', plugin_args={'n_procs': 16})
         
             
 if __name__ == "__main__":
-    exp_dir_group1 = None
-    exp_dir_group2 = None
+    exp_dir = None
+    group1 = None
+    group2 = None
     subject_list = None
     contrast_list = None
     result_dir = None
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     param = None
 
     try:
-        OPTIONS, REMAINDER = getopt.getopt(sys.argv[1:], 'g1:g2:S:c:r:i:p:', ['exp_dir_group1=', 'exp_dir_group2=',
+        OPTIONS, REMAINDER = getopt.getopt(sys.argv[1:], 'e:g1:g2:S:c:r:i:p:', ['exp_dir=','group1=', 'group2=',
             'subject_list=', 'contrast_list=', 'result_dir=', 'n_iter=', 'param='])
 
     except getopt.GetoptError as err:
@@ -77,10 +78,12 @@ if __name__ == "__main__":
 
     # Replace variables depending on options
     for opt, arg in OPTIONS:
-        if opt in ('-g1', '--exp_dir_group1'):
-            exp_dir_group1= str(arg)
-        elif opt in ('-g2', '--exp_dir_group2'):
-            exp_dir_group2 = str(arg)
+        if opt in ('-e', '--exp_dir'):
+            exp_dir = str(arg)
+        elif opt in ('-g1', '--group1'):
+            group1= str(arg)
+        elif opt in ('-g2', '--group2'):
+            group2 = str(arg)
         elif opt in ('-S', '--subject_list'): 
             subject_list = json.loads(arg)
         elif opt in ('-c', '--contrast_list'): 
@@ -95,11 +98,11 @@ if __name__ == "__main__":
 
     print('OPTIONS   :', OPTIONS)
 
-    gzip = [True, True]
+    gzip = [False, False]
     # If SPM files, already unziped so no need to re-unzip them during pipeline
-    if 'SPM' in exp_dir_group1:
+    if 'spm' in group1:
         gzip[0] = False
-    if 'SPM' in exp_dir_group2:
+    if 'spm' in group2:
         gzip[1] = False
     
     # If file containing list of groups doesn't exist, create it with random groups
@@ -123,4 +126,4 @@ if __name__ == "__main__":
             random_subject_list = list(reader)
         file.close()
 
-    compute_group_comparison(exp_dir_group1, exp_dir_group2, result_dir, random_subject_list, contrast_list, gzip=gzip, param=param)
+    compute_group_comparison(exp_dir, group1, group2, result_dir, random_subject_list, contrast_list, gzip=gzip, param=param)

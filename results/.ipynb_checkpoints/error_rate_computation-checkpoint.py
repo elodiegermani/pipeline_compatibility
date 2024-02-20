@@ -63,23 +63,16 @@ def compute_error_rate(result_dir, n_iter, contrast_list):
 
             # Search for activated voxels
             if np.any(stat_map_1_data != 0):
-                #print(f'Image {i} contains errors.')
+                print(f'Image {i} contains errors.')
                 frac_1.append(1)
             if  np.any(stat_map_2_data != 0):
-                #print(f'Image {i} contains errors.')
+                print(f'Image {i} contains errors.')
                 frac_2.append(1)
             
         #print(len(frac_1), len(frac_2))
 
     ER_1 = len(frac_1)/n_iter
     ER_2 = len(frac_2)/n_iter
-
-    error_rate_dir = '/'.join(result_dir.split('/')[:-1]) + '/error_rates/' + result_dir.split('/')[-1]
-
-    with open(f'{error_rate_dir}/error_rate.txt', 'w') as f:
-        f.write(f'{str(ER_1)},{str(ER_2)}')
-        f.close()
-        
     print(result_dir)
     print(ER_1, ER_2)
 

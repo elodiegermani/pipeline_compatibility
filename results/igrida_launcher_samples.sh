@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Parameters
-expe_name="pipeline_transition"
-main_script=/srv/tempdd/egermani/hcp_pipelines_compatibility/src/singularity_launcher_bw_groups.sh
+expe_name="preproc"
+main_script=/srv/tempdd/egermani/hcp_pipelines_compatibility/results/singularity_launcher_samples.sh
 
 
 echo "Create dir for log"
@@ -20,4 +20,4 @@ chmod 777 $PATHLOG
 set -x
 
 module load spack/singularity
-singularity exec -B /srv/tempdd/egermani -B /nfs/nas-empenn/data/share/users/egermani /srv/tempdd/egermani/open_pipeline_latest.sif $main_script
+singularity exec -B /srv/tempdd/egermani -B /nfs/nas-empenn/data/share/users/egermani/hcp_pipelines_compatibility /srv/tempdd/egermani/open_pipeline_latest.sif $main_script

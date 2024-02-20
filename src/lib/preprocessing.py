@@ -1,11 +1,12 @@
 from glob import glob
 from nilearn.image import resample_img, resample_to_img
-from nilearn import datasets, plotting, masking
+from nilearn import datasets, plotting, masking, image
 import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import os.path as op
 import os
+import nipype.interfaces.fsl as fsl 
 
 def get_imlist(images):
     '''
@@ -18,15 +19,52 @@ def get_imlist(images):
         - files: list, list containing all paths to the images
         - inpdir: boolean, True if images is the directory containing the images, False otherwise
     '''
-    if op.isdir(images):
-        files = sorted(glob(op.join(images, "*.nii*"), recursive=True))
-        inpdir = True
-    else:
-        files = [images]
-        inpdir = False
+    files = sorted(glob(images))
+    inpdir = True
+
     return files, inpdir
 
-def preprocessing(data_dir, output_dir, resolution, scale_factor):
+def compute_intersection_mask(data, pipeline):
+    '''
+    Compute intersection mask of images located in a directory and resample this mask to MNI.
+
+    Parameters
+    ----------
+    data : list
+        List of images images
+
+    Returns
+    -------
+    mask : Nifti1Image
+        Mask image
+    '''
+    img_list = []
+    mask_list = []
+
+    target = nib.load(fsl.Info.standard_image('MNI152_T1_2mm_brain_mask.nii.gz')) #datasets.load_mni152_gm_template(4)
+
+    print('Computing mask for pipeline', pipeline)
+    data_pipeline = [f for f in data if pipeline in f]
+
+    print('Number of masks:', len(data_pipeline))
+    for fpath in data_pipeline:
+        img = nib.load(fpath)
+
+        mask_img = image.binarize_img(img)
+
+        resampled_mask = image.resample_to_img(
+                    mask_img,
+                    target,
+                    interpolation='nearest')
+
+        mask_list.append(resampled_mask)
+    print('All subjects masks resampled.')
+
+    mask = masking.intersect_masks(mask_list, threshold=1)
+
+    return mask
+
+def preprocessing(data_dir, output_dir):
     '''
     Preprocess all maps that are stored in the 'original' repository of the data_dir. 
     Store these maps in subdirectories of the data_dir corresponding to the preprocessing step applied.
@@ -41,65 +79,67 @@ def preprocessing(data_dir, output_dir, resolution, scale_factor):
     img_list, input_dir = get_imlist(op.join(data_dir))
         
     # Create dirs to save images
-    if not op.isdir(op.join(output_dir, f'resampled_masked_rescaled_{scale_factor}_res_{resolution}')):
-        os.mkdir(op.join(output_dir, f'resampled_masked_rescaled_{scale_factor}_res_{resolution}'))
+    if not op.isdir(op.join(output_dir, f'preprocessed')):
+        os.mkdir(op.join(output_dir, f'preprocessed'))
 
+    # Load standard image 
+    standard = nib.load(fsl.Info.standard_image('MNI152_T1_2mm.nii.gz'))
 
-    shapes = {1: (182, 218, 182),
-          2: (96, 112, 96),
-          3: (62, 74, 62),
-          4: (48, 56, 48)}
+    ## Search for mask or compute intersection mask between images of ALL pipelines if first time
+    if not os.path.exists(op.join(output_dir, f'preprocessed', 'mask.nii.gz')):
+        mask_list = []
+        # 1 - Compute mask per pipeline
+        for pipeline in ['fsl-5-0-0', 'fsl-5-0-1', 
+        'fsl-8-0-0', 'fsl-8-0-1', 'fsl-5-6-0', 'fsl-5-6-1', 'fsl-8-6-0', 'fsl-8-6-1',
+        'fsl-5-24-0', 'fsl-5-24-1', 'fsl-8-24-0', 'fsl-8-24-1',
+        'spm-5-0-0', 'spm-5-0-1', 
+        'spm-8-0-0', 'spm-8-0-1', 'spm-5-6-0', 'spm-5-6-1', 'spm-8-6-0', 'spm-8-6-1',
+        'spm-5-24-0', 'spm-5-24-1', 'spm-8-24-0', 'spm-8-24-1']: # To adapt if you use less pipelines
 
-    # Load mask to apply to images    
-    mask = datasets.load_mni152_brain_mask(resolution=resolution, threshold=0.1)
+            mask_list.append(compute_intersection_mask(img_list, pipeline))
 
-    target_affine = datasets.load_mni152_brain_mask(resolution=resolution, threshold=0.1).affine.copy()
-    target_affine[:3,:3] = np.sign(target_affine[:3,:3]) * resolution
-    target_shape = shapes[resolution]
+        # 2 - Compute mask for ALL pipeline
+        mask = masking.intersect_masks(mask_list, threshold=1)
+        nib.save(mask, op.join(output_dir, f'preprocessed', 'mask.nii.gz'))
 
-    res_mask = resample_img(mask, target_affine=target_affine, target_shape=target_shape, interpolation='nearest')
+    else:
+        mask = nib.load(op.join(output_dir, f'preprocessed', 'mask.nii.gz'))
     
     for idx, img in enumerate(img_list):
         print('Image', img)
 
+        # Transform NaN to 0s
         nib_img = nib.load(img)
+
         img_data = nib_img.get_fdata()
         img_data = np.nan_to_num(img_data)
+
         img_affine = nib_img.affine
         nib_img = nib.Nifti1Image(img_data, img_affine)
         
         print('Original shape of image ', idx+1, ':',  nib_img.shape)
 
         try:
+            # Resample to standard image
             print("Resampling image {0} of {1}...".format(idx + 1, len(img_list)))
             
-            res_img = resample_to_img(nib_img, res_mask, interpolation='nearest')
+            res_img = resample_to_img(
+                nib_img, 
+                standard, 
+                interpolation='continuous'
+            )
 
-            print('New shape for image', idx, res_img.shape)
-
-            #nib.save(res_img, op.join(output_dir, f'resampled_res_{resolution}', op.basename(img))) # Save original image only resampled
-            
+            print('New shape for image', idx, res_img.shape)            
             print("Masking image {0} of {1}...".format(idx + 1, len(img_list)))
             
-            res_mask_data = res_mask.get_fdata()
+            # Apply mask 
+            mask_data = mask.get_fdata()
             res_img_data = res_img.get_fdata()
             
-            res_masked_img_data = res_img_data * res_mask_data
-            
+            res_masked_img_data = res_img_data * mask_data
             res_masked_img = nib.Nifti1Image(res_masked_img_data, res_img.affine)
             
-            #nib.save(res_masked_img, op.join(output_dir,f'resampled_masked_res_{resolution}', op.basename(img))) # Save original image resampled and masked
-
-            print('Rescaling masked image', idx)
-
-            res_masked_scaled_img_data = res_masked_img_data.copy().astype(float)
-            res_masked_scaled_img_data = np.nan_to_num(res_masked_scaled_img_data)
-                
-            res_masked_scaled_img_data = res_masked_scaled_img_data * scale_factor 
-
-            res_masked_scaled_img = nib.Nifti1Image(res_masked_scaled_img_data, res_img.affine)
-            
-            nib.save(res_masked_scaled_img, op.join(output_dir, f'resampled_masked_rescaled_{scale_factor}_res_{resolution}', op.basename(img))) # Save original image resampled and normalized
+            nib.save(res_masked_img, op.join(output_dir, f'preprocessed', op.basename(img))) # Save original image resampled and normalized
 
             print(f"Image {idx} : DONE.")
 
