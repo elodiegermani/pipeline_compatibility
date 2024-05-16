@@ -70,14 +70,17 @@ def pp_plot(
     )
         
     ax1.set_xlabel(
-        'expected -log10(p-values)'
+        'expected -log10(p-values)',
+        fontsize=16
     )
     ax1.set_ylabel(
-        'difference between observed\nand expected -log10(p-values)'
+        'difference between observed\nand expected -log10(p-values)',
+        fontsize=16
     )
     ax1.legend(
         line,
-        title
+        title,
+        fontsize=16
     )   
 
     return f, ax1
@@ -117,9 +120,11 @@ def distribution_plots(
         '-'
     )
 
+    ax.set_xlim((-5,5))
+
     ax.set_title(
         title,
-        fontsize=12
+        fontsize=16
     )
 
     return f
