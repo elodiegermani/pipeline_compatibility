@@ -75,6 +75,14 @@ python3 error_rate_computation.py -g1 /srv/tempdd/egermani/hcp_pipelines/data/de
 
 ```
 
+### Samples for P-P plots
+After performing two-sample t-tests and thresholding, you might want to compute the samples to build the P-P plots. This can be done using `results/samples_computation.py`. 
+How to use:
+
+```bash
+python3 samples_computation.py
+```
+
 ## Reproduce figures and tables
 
-Figures and Tables can be reproduced using the notebook available in the `figure` directory. 
+Figures and Tables can be reproduced using the notebook available in the `results` directory. This requires to have run all the steps above beforehand.
