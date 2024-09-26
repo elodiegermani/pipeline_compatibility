@@ -4,7 +4,7 @@
 
 import numpy as np
 import nibabel as nib 
-from lib import between_groups_analysis#, non_parametric_thresholding
+from lib import between_groups_analysis, non_parametric_thresholding
 from glob import glob
 from os.path import join as opj
 import os
@@ -55,7 +55,7 @@ def compute_group_comparison(exp_dir, group1, group2, result_dir, subject_list, 
         l2_analysis_generated = non_parametric_thresholding.get_l2_analysis(exp_dir, group1, group2, output_dir, 
                                             working_dir, result_dir, random_subject_list, contrast_list)
         
-    l2_analysis_generated.run()#('MultiProc', plugin_args={'n_procs': 8})
+    l2_analysis_generated.run('MultiProc', plugin_args={'n_procs': 16})
         
             
 if __name__ == "__main__":
@@ -126,4 +126,4 @@ if __name__ == "__main__":
             random_subject_list = list(reader)
         file.close()
 
-    compute_group_comparison(exp_dir, group1, group2, result_dir, random_subject_list[0:2], contrast_list, gzip=gzip, param=param)
+    compute_group_comparison(exp_dir, group1, group2, result_dir, random_subject_list, contrast_list, gzip=gzip, param=param)

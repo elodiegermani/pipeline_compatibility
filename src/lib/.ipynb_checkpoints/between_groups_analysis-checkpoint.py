@@ -3,9 +3,7 @@
 # with groups defined as a list of subjects with the 0-n subjects corresponding to group1 and n+1-end to group2.
 
 from nipype.interfaces import spm
-import os
-os.environ['FORCE_SPMMCR'] = '1'
-matlab_cmd = '/opt/spm12-r7219/run_spm12.sh /opt/matlabmcr-2010a/v713/ script'
+matlab_cmd = '/opt/spm12-r7771/run_spm12.sh /opt/matlabmcr-2010a/v713/ script'
 spm.SPMCommand.set_mlab_paths(matlab_cmd=matlab_cmd, use_mcr=True)
 
 from nipype.interfaces.spm import (Coregister, Smooth, OneSampleTTestDesign, EstimateModel, EstimateContrast, 
@@ -19,7 +17,6 @@ from nipype.interfaces.io import SelectFiles, DataSink
 from nipype.algorithms.misc import Gunzip
 from nipype import Workflow, Node, MapNode, JoinNode
 from nipype.interfaces.base import Bunch
-from nipype.interfaces.fsl import Info
 
 from os.path import join as opj
 import os
@@ -45,18 +42,16 @@ def get_groups_maps(group1_files, group2_files, subject_list, n):
     group2_subjects = subject_list[n][int(len(subject_list[n])/2):]
 
     for file in group1_files:
-        sub_id = file.split('/')[-2].split('-')[-1]
+        sub_id = file.split('/')[-1].split('_')[0].split('-')[-1]
         if sub_id in group1_subjects:
             group1_sublist.append(file)  # Get the files corresponding to subjects from the first part of the n-th list of subjects 
 
     for file in group2_files:
-        sub_id = file.split('/')[-2].split('-')[-1]
+        sub_id = file.split('/')[-1].split('_')[0].split('-')[-1]
         if sub_id in group2_subjects:
             group2_sublist.append(file) 
 
-    print(len(group1_sublist), len(group2_sublist))
     print(group1_sublist)
-    print(group2_sublist)
     
     return group1_sublist, group2_sublist
 
@@ -96,8 +91,8 @@ def get_l2_analysis_group_comparison(exp_dir, group1, group2, output_dir, workin
     infosource_groupanalysis.iterables = [('contrast', contrast_list)]
 
     # SelectFiles templates and Node
-    group1_files = opj(exp_dir, f'{group1}', 'node-L1', 'sub-*', 'sub-*_task-motor_space-*_contrast-righthand_stat-effect_statmap.nii*')
-    group2_files = opj(exp_dir, f'{group2}', 'node-L1', 'sub-*', 'sub-*_task-motor_space-*_contrast-righthand_stat-effect_statmap.nii*')
+    group1_files = opj(exp_dir, 'sub-*_{contrast}'+f'_{group1}_con.nii*')
+    group2_files = opj(exp_dir, 'sub-*_{contrast}'+f'_{group2}_con.nii*')
 
     templates = {'group1' : group1_files, 'group2':group2_files}
     
@@ -119,8 +114,7 @@ def get_l2_analysis_group_comparison(exp_dir, group1, group2, output_dir, workin
     sub_contrasts.inputs.subject_list = subject_list
     
     # Node for the design matrix
-    two_sample_t_test_design = Node(TwoSampleTTestDesign(explicit_mask_file = Info.standard_image('MNI152_T1_2mm_brain_mask.nii.gz'),
-                                                            unequal_variance=True), name = 'two_sample_t_test_design')
+    two_sample_t_test_design = Node(TwoSampleTTestDesign(unequal_variance=True), name = 'two_sample_t_test_design')
 
     # Estimate model 
     estimate_model = Node(EstimateModel(estimation_method={'Classical':1}), name = "estimate_model")
