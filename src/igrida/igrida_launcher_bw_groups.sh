@@ -20,4 +20,4 @@ chmod 777 $PATHLOG
 set -x
 
 module load spack/singularity
-singularity exec -B /srv/tempdd/egermani -B /nfs/nas-empenn/data/share/users/egermani /srv/tempdd/egermani/open_pipeline_latest.sif $main_script
+singularity exec -B /srv/tempdd/egermani /srv/tempdd/egermani/open_pipeline_latest.sif $main_script

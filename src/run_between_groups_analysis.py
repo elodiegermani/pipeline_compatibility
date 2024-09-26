@@ -126,4 +126,4 @@ if __name__ == "__main__":
             random_subject_list = list(reader)
         file.close()
 
-    compute_group_comparison(exp_dir, group1, group2, result_dir, random_subject_list[0:2], contrast_list, gzip=gzip, param=param)
+    compute_group_comparison(exp_dir, group1, group2, result_dir, random_subject_list, contrast_list, gzip=gzip, param=param)
